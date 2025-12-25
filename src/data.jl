@@ -30,8 +30,39 @@ function get_spot_price(ticker::String)
     return spot
 end
 
+function get_closest_expiry(ticker::String)
+    "Returns the closest expiry date for the given ticker"
+    stock = yf.Ticker(ticker)
+    @assert length(stock.options) > 0 "No options data is found for the given ticker: $(ticker). Check that the ticker is correct."
+    closest_expiry = pyconvert(String, stock.options[1])
+    return closest_expiry
+end
 
+println("im running dis fr fr")
+ticker = "AMD"
+expiry = get_closest_expiry(ticker)
+println("ticker: $(ticker) expiry: $(expiry)")
+call_df, put_df = get_option_prices(ticker, expiry)
+spot = get_spot_price(ticker)
+rate = 0.01
 
+include("../src/functions.jl")
+paritized = paritize(spot, call_df, put_df, expiry, rate)
+println(paritized)
+
+using Plots
+plot(
+    paritized.strike,
+    paritized.price,
+    seriestype = :scatter,      # or :scatter
+    marker = :circle,
+    xlabel = "Strike",
+    ylabel = "Price",
+    title = "Paritized Option Prices",
+    legend = false
+)
+
+savefig("test_plot.png")
 
 export get_option_prices
 
