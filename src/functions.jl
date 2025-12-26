@@ -107,8 +107,8 @@ function fit_iv_spline(smoothed_data::DataFrame, s=1e-4)
     return spl
 end
 
-function reprice_with_spline(paritized::DataFrame, spot::Float64, rate::Float64, expiry_dt::String, spline)
-    """Given a spline that was fitted in the iv-space, reprice the paritized data using black scholes, ensuring a smooth price curve."""
+function reprice(paritized::DataFrame, spot::Float64, rate::Float64, expiry_dt::String, fit_fn)
+    """Given a fit_fn that was fitted in the iv-space, reprice the paritized data using black scholes, ensuring a smooth price curve."""
     τ = get_τ(expiry_dt)
     t = 0.0
 
@@ -116,7 +116,7 @@ function reprice_with_spline(paritized::DataFrame, spot::Float64, rate::Float64,
 
     for (i, row) in enumerate(eachrow(paritized))
         K = Float64(row.strike)
-        σ = spline(K)
+        σ = fit_fn(K)
 
         bs = BlackScholesMerton(spot, K, τ, t, rate, σ)
         prices[i] = bs(Call)
@@ -143,6 +143,16 @@ function Breeden_Litzenberger(k::Float64, spl_price::Spline1D, rate::Float64, ex
     d2C = derivative(spl_price, k, 2)
     q = exp(rate * T) * d2C
     return q
+end
+
+function Breeden_Litzenberger(K::Float64, spot::Float64, iv_fun::Function, r::Float64, expiry_dt::String, h::Float64 = 0.001)
+    "Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a function iv_fun:σ→price"
+    T = get_τ(expiry_dt)
+
+    C(Kx) = BlackScholesMerton(spot, Kx, T, 0.0, r, iv_fun(Kx))(Call)
+
+    d2C = (C(K+h) - 2C(K) + C(K-h)) / h^2
+    return exp(r*T) * d2C
 end
 
 

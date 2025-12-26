@@ -1,7 +1,7 @@
 include("../src/data.jl")
 include("../src/functions.jl")
 include("../src/bs.jl")
-
+include("../src/svi.jl")
 
 
 
@@ -28,7 +28,7 @@ smoothed_data_no_nans = remove_nans(smoothed_data)
 
 spl_iv = fit_iv_spline(smoothed_data_no_nans, 1e-4)
 
-repriced_paritized = reprice_with_spline(paritized, spot, rate, expiry, spl_iv)
+repriced_paritized = reprice(paritized, spot, rate, expiry, spl_iv)
 
 spl_price = fit_price_spline(repriced_paritized, 1e-4)
 
@@ -146,28 +146,10 @@ scatter!(
 )
 
 savefig("plots/$(ticker)_7_price_spline.png")
-###############
+##########
 K = Float64.(repriced_paritized.strike)
 
-K_dense = range(minimum(K), maximum(K), length=400)
-price_dense = spl_price.(K_dense)
-
-plot(
-    K_dense,
-    price_dense,
-    label = "Spline Price",
-    linewidth = 2,
-    xlabel = "Strike",
-    ylabel = "Price",
-    title = "Smoothed Price (Spline)"
-)
-
-savefig("plots/$(ticker)_7_price_spline.png")
-
-###############
-K = Float64.(repriced_paritized.strike)
-
-K_dense = range(minimum(K), maximum(K), length=400)
+K_dense = range(150, 300, length=500)
 
 plot(
     K_dense,
@@ -176,7 +158,7 @@ plot(
     linewidth = 2,
     xlabel = "Strike",
     ylabel = "Price",
-    title = "Probability Density function (Breeden-Litzenberger)"
+    title = "Probability Density function spline fit (Breeden-Litzenberger)"
 )
 
-savefig("plots/$(ticker)_8_pdf.png")
+savefig("plots/$(ticker)_8_pdf_spline.png")
