@@ -15,25 +15,25 @@ call_df, put_df = get_option_prices(ticker, expiry)
 spot = get_spot_price(ticker)
 
 println("ticker: $(ticker) expiry: $(expiry) spot: $(spot)")
-  
+
+τ = get_τ(expiry)
 rate = 0.01
 
-paritized = paritize(spot, call_df, put_df, expiry, rate)
+paritized = paritize(spot, call_df, put_df, τ, rate)
 print(paritized)
 
-paritized_with_iv = add_IV_column(paritized, spot, rate, expiry)
+paritized_with_iv = add_IV_column(paritized, spot, rate, τ)
 
 smoothed_data = gaussian_smooth(paritized_with_iv, 5)
 smoothed_data_no_nans = remove_nans(smoothed_data)
 
 spl_iv = fit_iv_spline(smoothed_data_no_nans, 1e-4)
 
-repriced_paritized = reprice(paritized, spot, rate, expiry, spl_iv)
+repriced_paritized = reprice(paritized, spot, rate, τ, spl_iv)
 
 spl_price = fit_price_spline(repriced_paritized, 1e-4)
 
-# pdf = Breeden_Litzenberger(spl_price, rate, expiry)
-
+# pdf = Breeden_Litzenberger(spl_price, rate, τ)
 using Plots
 plot(
     paritized.strike,
@@ -149,11 +149,11 @@ savefig("plots/$(ticker)_7_price_spline.png")
 ##########
 K = Float64.(repriced_paritized.strike)
 
-K_dense = range(150, 300, length=500)
+K_dense = range(minimum(K), maximum(K), length=500)
 
 plot(
     K_dense,
-    [Breeden_Litzenberger(k, spl_price, rate, expiry) for k in K_dense],
+    [Breeden_Litzenberger(k, spl_price, rate, τ) for k in K_dense],
     label = "Spline Price",
     linewidth = 2,
     xlabel = "Strike",

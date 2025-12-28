@@ -12,14 +12,10 @@ function get_τ(expiry_dt::String)
     return Float64((Date(expiry_dt) - today()).value) / 365.0
 end
 
-function paritize(spot::Float64, call_df::DataFrame, put_df::DataFrame, expiry_dt::String, rate::Float64)
+function paritize(spot::Float64, call_df::DataFrame, put_df::DataFrame, τ::Float64, rate::Float64)
     
     calls_otm = filter(:inTheMoney => ==(false), call_df)
     puts_otm = filter(:inTheMoney => ==(false), put_df)
-
-    println(names(call_df))
-
-    τ = get_τ(expiry_dt)
 
     puts_otm.synth_call_price = puts_otm.mid .+ spot .- puts_otm.strike * exp(-rate * τ)
 
@@ -38,12 +34,8 @@ function paritize(spot::Float64, call_df::DataFrame, put_df::DataFrame, expiry_d
 end
 
 
-function add_IV_column(paritized::DataFrame, spot::Float64, rate::Float64, expiry_dt::String)
+function add_IV_column(paritized::DataFrame, spot::Float64, rate::Float64, τ::Float64)
     "Adds an implied volatility column to the paritized dataframe using newtons method."
-
-    τ = get_τ(expiry_dt)
-    t = 0.0
-    T = τ
 
     paritized.iv = Vector{Float64}(undef, nrow(paritized))
 
@@ -52,7 +44,7 @@ function add_IV_column(paritized::DataFrame, spot::Float64, rate::Float64, expir
         mkt = Float64(row.price) 
         show_logs = i % 50 == 0
 
-        bs = BlackScholesMerton(spot, K, T, t, rate, 0.20)
+        bs = BlackScholesMerton(spot, K, τ, 0.0, rate, 0.20)
 
         paritized.iv[i] = try
             newtons(bs, Call, mkt; tol=1e-8, max_iter=200, show=show_logs)
@@ -107,10 +99,8 @@ function fit_iv_spline(smoothed_data::DataFrame, s=1e-4)
     return spl
 end
 
-function reprice(paritized::DataFrame, spot::Float64, rate::Float64, expiry_dt::String, fit_fn)
+function reprice(paritized::DataFrame, spot::Float64, rate::Float64, τ::Float64, fit_fn)
     """Given a fit_fn that was fitted in the iv-space, reprice the paritized data using black scholes, ensuring a smooth price curve."""
-    τ = get_τ(expiry_dt)
-    t = 0.0
 
     prices = Vector{Float64}(undef, nrow(paritized))
 
@@ -118,7 +108,7 @@ function reprice(paritized::DataFrame, spot::Float64, rate::Float64, expiry_dt::
         K = Float64(row.strike)
         σ = fit_fn(K)
 
-        bs = BlackScholesMerton(spot, K, τ, t, rate, σ)
+        bs = BlackScholesMerton(spot, K, τ, 0.0, rate, σ)
         prices[i] = bs(Call)
     end
 
@@ -137,42 +127,43 @@ function fit_price_spline(paritized::DataFrame, s=1e-4)
 end
 
 
-function Breeden_Litzenberger(k::Float64, spl_price::Spline1D, rate::Float64, expiry_dt::String)
-    """Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a price spline."""
-    T = get_τ(expiry_dt)
+function Breeden_Litzenberger(k::Float64, spl_price::Spline1D, rate::Float64, τ::Float64)
+    """Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a price spline. 
+    r is the risk-free rate, τ is time to expiry in years.
+    """
     d2C = derivative(spl_price, k, 2)
-    q = exp(rate * T) * d2C
+    q = exp(rate * τ) * d2C
     return q
 end
 
-function Breeden_Litzenberger(K::Float64, spot::Float64, iv_fun::Function, r::Float64, expiry_dt::String, h::Float64 = 0.001)
-    "Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a function iv_fun:σ→price"
-    T = get_τ(expiry_dt)
+function Breeden_Litzenberger(K::Float64, spot::Float64, iv_fun::Function, r::Float64, τ::Float64, h::Float64 = 0.001)
+    "Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a function iv_fun:σ→price
+    r is the risk-free rate, τ is time to expiry in years."
 
-    C(Kx) = BlackScholesMerton(spot, Kx, T, 0.0, r, iv_fun(Kx))(Call)
+    C(Kx) = BlackScholesMerton(spot, Kx, τ, 0.0, r, iv_fun(Kx))(Call)
 
     if K <= h
         d2C = (C(K + 2h) - 2C(K + h) + C(K)) / (h^2)
     else
         d2C = (C(K + h) - 2C(K) + C(K - h)) / (h^2)
     end
-    return exp(r*T) * d2C
+    return exp(r*τ) * d2C
 end
 
 
-function prob_at_or_above(K::Float64, spot::Float64, iv_fun::Function, r::Float64, expiry_dt::String)
+function p_at_or_above(K::Float64, spot::Float64, iv_fun::Function, r::Float64, τ::Float64)
     "Computes the risk-neutral probability that the underlying will be above strike K at expiry using the Breeden-Litzenberger formula.
     This is done by taking the cdf at K, and subtracting it from 1."
-    return 1.0 - prob_below(K, spot, iv_fun, r, expiry_dt)
+    return 1.0 - p_below(K, spot, iv_fun, r, τ)
 end
 
 
-function prob_below(K::Float64, spot::Float64, iv_fun::Function, r::Float64, expiry_dt::String)
+function p_below(K::Float64, spot::Float64, iv_fun::Function, r::Float64, τ::Float64)
     "Computes the risk-neutral probability that the underlying will be below strike K at expiry using the Breeden-Litzenberger formula.
     This is done by integrating the risk-neutral PDF from 0 to K. using the trapezoidel rule.
     This is the cdf at K."
 
-    integrand(k) = Breeden_Litzenberger(k, spot, iv_fun, r, expiry_dt)
+    integrand(k) = Breeden_Litzenberger(k, spot, iv_fun, r, τ)
 
     lower_limit = 1.0
     num_points = 10000

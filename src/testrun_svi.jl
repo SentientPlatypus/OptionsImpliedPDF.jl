@@ -12,17 +12,19 @@ ticker = "AMD"
 expiry = get_closest_expiry(ticker)
 
 call_df, put_df = get_option_prices(ticker, expiry)
+
 spot = get_spot_price(ticker)
 rate = 0.01 
-T = get_τ(expiry)
-F = spot * exp(rate * T)
+τ = get_τ(expiry)
+F = spot * exp(rate * τ)
+
 println("F: $(F)")
 println("ticker: $(ticker) expiry: $(expiry) spot: $(spot)")
 
-paritized = paritize(spot, call_df, put_df, expiry, rate)
+paritized = paritize(spot, call_df, put_df, τ, rate)
 print(paritized)
 
-paritized_with_iv = add_IV_column(paritized, spot, rate, expiry)
+paritized_with_iv = add_IV_column(paritized, spot, rate, τ)
 
 smoothed_data = gaussian_smooth(paritized_with_iv, 5)
 smoothed_data_no_nans = remove_nans(smoothed_data)
@@ -30,12 +32,12 @@ smoothed_data_no_nans = remove_nans(smoothed_data)
 fit, iv_fun = fit_svi_smile(
     Float64.(smoothed_data_no_nans.strike),
     Float64.(smoothed_data_no_nans.iv),
-    F,T
+    F,τ
     , 1e-4)
 
 @show fit
 
-repriced_paritized = reprice(paritized, spot, rate, expiry, iv_fun)
+repriced_paritized = reprice(paritized, spot, rate, τ, iv_fun)
 
 spl_price = fit_price_spline(repriced_paritized, 1e-4)
 
@@ -43,25 +45,25 @@ spl_price = fit_price_spline(repriced_paritized, 1e-4)
 
 strike_price_to_analyze = 220.0
 
-p_below = prob_below(
+probability_below = p_below(
     strike_price_to_analyze,
     spot,
     iv_fun,
     rate,
-    expiry
+    τ
 )
 
-p_above_strike = prob_at_or_above(
+probability_above = p_at_or_above(
     strike_price_to_analyze,
     spot,
     iv_fun,
     rate,
-    expiry
+    τ
 )
 
 
-println("Probability that the price will be above $(strike_price_to_analyze) at expiry: $(p_above_strike)")
-println("Probability that the price will be below $(strike_price_to_analyze) at expiry: $(p_below)")
+println("Probability that the price will be above $(strike_price_to_analyze) at expiry: $(probability_above)")
+println("Probability that the price will be below $(strike_price_to_analyze) at expiry: $(probability_below)")
 
 using Plots
 plot(
@@ -184,7 +186,7 @@ K_dense = range(minimum(K), maximum(K), length=500)
 
 plot(
     K_dense,
-    [Breeden_Litzenberger(k,spot, iv_fun, rate, expiry) for k in K_dense],
+    [Breeden_Litzenberger(k,spot, iv_fun, rate, τ) for k in K_dense],
     label = "Spline Price",
     linewidth = 2,
     xlabel = "Strike",
