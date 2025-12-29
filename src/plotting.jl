@@ -111,7 +111,8 @@ function plot_pdf_numerical(repriced_paritized, spot, iv_fun, rate, τ, ticker, 
         xlabel = "Strike",
         ylabel = "Price",
         title = "$(ticker) Probability Density function numerical (Breeden-Litzenberger)",
-        legend = true
+        legend = true,
+        size=(800,600)
     )
 
 

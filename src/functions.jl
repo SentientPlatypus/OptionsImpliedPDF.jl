@@ -1,6 +1,5 @@
 using Dates
 using DataFrames
-using Dierckx
 
 include("bs.jl")
 
@@ -118,23 +117,23 @@ function reprice(paritized::DataFrame, spot::Float64, rate::Float64, τ::Float64
     )
 end
 
-function fit_price_spline(paritized::DataFrame, s=1e-4)
-    K = Float64.(paritized.strike)
-    prices = Float64.(paritized.price)
-    spl = Spline1D(K, prices; k=3, s=s)
+# function fit_price_spline(paritized::DataFrame, s=1e-4)
+#     K = Float64.(paritized.strike)
+#     prices = Float64.(paritized.price)
+#     spl = Spline1D(K, prices; k=3, s=s)
 
-    return spl
-end
+#     return spl
+# end
 
 
-function Breeden_Litzenberger(k::Float64, spl_price::Spline1D, rate::Float64, τ::Float64)
-    """Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a price spline. 
-    r is the risk-free rate, τ is time to expiry in years.
-    """
-    d2C = derivative(spl_price, k, 2)
-    q = exp(rate * τ) * d2C
-    return q
-end
+# function Breeden_Litzenberger(k::Float64, spl_price::Spline1D, rate::Float64, τ::Float64)
+#     """Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a price spline. 
+#     r is the risk-free rate, τ is time to expiry in years.
+#     """
+#     d2C = derivative(spl_price, k, 2)
+#     q = exp(rate * τ) * d2C
+#     return q
+# end
 
 function Breeden_Litzenberger(K::Float64, spot::Float64, iv_fun::Function, r::Float64, τ::Float64, h::Float64 = 0.001)
     "Using the Breeden_Litzenberger forrmula, this computes the risk-neutral PDF at strike k given a function iv_fun:σ→price

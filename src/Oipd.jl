@@ -9,7 +9,6 @@ module Oipd
     using Distributions
     using Dates
     using DataFrames
-    using Dierckx
     using PythonCall
     
 

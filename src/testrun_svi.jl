@@ -40,8 +40,6 @@ fit, iv_fun = fit_svi_smile(
 
 repriced_paritized = reprice(paritized, spot, rate, τ, iv_fun)
 
-spl_price = fit_price_spline(repriced_paritized, 1e-4)
-
 
 
 strike_price_to_analyze = 220.0
@@ -67,7 +65,7 @@ println("Probability that the price will be above $(strike_price_to_analyze) at 
 println("Probability that the price will be below $(strike_price_to_analyze) at expiry: $(probability_below)")
 
 # Plotting
-dir = "plots/testrun/$(ticker)/$(expiry)"
+dir = "plots/0_testrun/$(ticker)/$(expiry)"
 
 make_dir_if_not_exists(dir)
 plot_paritized_prices(paritized, ticker, dir)
