@@ -51,6 +51,7 @@ Pkg.add("https://github.com/SentientPlatypus/Oipd.jl")
 
 - **[Technical Documentation](TECHNICAL_README.md)**: Detailed mathematical background, algorithms, and API reference
 - **[Examples](examples/)**: Practical usage examples and scripts
+- **[Hand Written Notes](notes/Implied%20Probability.pdf)**: Handwritten notes I took while working on this project
 - **API Reference**: Comprehensive function documentation in source code
 
 ## Core Functionality
