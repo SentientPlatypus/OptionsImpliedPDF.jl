@@ -1,6 +1,6 @@
 # Oipdf.jl
 
-[![Build Status](https://github.com/SentientPlatypus/Oipd.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/SentientPlatypus/Oipd.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Build Status](https://github.com/SentientPlatypus/Oipdf.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/SentientPlatypus/Oipdf.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Julia](https://img.shields.io/badge/Julia-1.10+-blue.svg)](https://julialang.org/)
 
