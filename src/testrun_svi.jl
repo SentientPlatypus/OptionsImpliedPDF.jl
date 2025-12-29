@@ -2,6 +2,7 @@ include("../src/data.jl")
 include("../src/functions.jl")
 include("../src/bs.jl")
 include("../src/svi.jl")
+include("../src/plotting.jl")
 
 
 
@@ -65,133 +66,14 @@ probability_above = p_at_or_above(
 println("Probability that the price will be above $(strike_price_to_analyze) at expiry: $(probability_above)")
 println("Probability that the price will be below $(strike_price_to_analyze) at expiry: $(probability_below)")
 
-using Plots
-plot(
-    paritized.strike,
-    paritized.price,
-    seriestype = :scatter,
-    marker = :circle,
-    xlabel = "Strike",
-    ylabel = "Price",
-    title = "Paritized Option Prices",
-    legend = false
-)
+# Plotting
+dir = "plots/testrun/$(ticker)/$(expiry)"
 
-savefig("plots/$(ticker)_1_paritized_plot.png")
-
-plot(
-    paritized_with_iv.strike,
-    paritized_with_iv.iv,
-    seriestype = :scatter,
-    marker = :circle,
-    xlabel = "Strike",
-    ylabel = "Implied Vol",
-    title = "Implied Volatility Smile",
-    legend = false
-)
-savefig("plots/$(ticker)_2_iv_smile.png")
-
-plot(
-    smoothed_data.strike,
-    smoothed_data.iv,
-    seriestype = :scatter,
-    marker = :circle,
-    xlabel = "Strike",
-    ylabel = "Implied Vol (smoothed)",
-    title = "Implied Volatility Smile smoothed",
-    legend = false
-)
-savefig("plots/$(ticker)_3_iv_smile_smoothed.png")
-
-plot(
-    smoothed_data_no_nans.strike,
-    smoothed_data_no_nans.iv,
-    seriestype = :scatter,
-    marker = :circle,
-    xlabel = "Strike",
-    ylabel = "Implied Vol (smoothed)",
-    title = "Implied Volatility Smile smoothed (NaNs removed)",
-    legend = false
-)
-savefig("plots/$(ticker)_4_iv_smile_smoothed_filtered.png")
-
-K = Float64.(smoothed_data_no_nans.strike)
-iv = Float64.(smoothed_data_no_nans.iv)
-
-K_dense = range(minimum(K), maximum(K), length=400)
-iv_dense = iv_fun.(K_dense)
-
-plot(
-    K_dense,
-    iv_dense,
-    label = "SVI fitted IV",
-    linewidth = 2,
-    xlabel = "Strike",
-    ylabel = "Implied Volatility",
-    title = "Smoothed Implied Volatility (SVI)"
-)
-
-scatter!(
-    K,
-    iv,
-    label = "Raw IV",
-    markersize = 4
-)
-
-savefig("plots/$(ticker)_5_iv_svi.png")
-
-plot(
-    repriced_paritized.strike,
-    repriced_paritized.price,
-    seriestype = :scatter,
-    marker = :circle,
-    xlabel = "Strike",
-    ylabel = "Price ",
-    title = "Price vs Strike (Repriced with Smoothed IV)",
-    legend = false
-)
-savefig("plots/$(ticker)_6_price_vs_strike_repriced.png")
-
-
-###############
-###############
-K = Float64.(repriced_paritized.strike)
-price = Float64.(repriced_paritized.price)
-
-K_dense = range(minimum(K), maximum(K), length=400)
-price_dense = spl_price.(K_dense)
-
-plot(
-    K_dense,
-    price_dense,
-    label = "Spline Price",
-    linewidth = 2,
-    xlabel = "Strike",
-    ylabel = "Price",
-    title = "Smoothed Price (Spline)"
-)
-
-scatter!(
-    K,
-    price,
-    label = "Raw Price",
-    markersize = 4
-)
-
-savefig("plots/$(ticker)_7_price_spline.png")
-###############
-K = Float64.(repriced_paritized.strike)
-
-K_dense = range(minimum(K), maximum(K), length=500)
-
-plot(
-    K_dense,
-    [Breeden_Litzenberger(k,spot, iv_fun, rate, τ) for k in K_dense],
-    label = "Spline Price",
-    linewidth = 2,
-    xlabel = "Strike",
-    ylabel = "Price",
-    title = "Probability Density function numerical (Breeden-Litzenberger)"
-)
-
-savefig("plots/$(ticker)_8_pdf_numerical.png")
+make_dir_if_not_exists(dir)
+plot_paritized_prices(paritized, ticker, dir)
+plot_iv_smile(paritized_with_iv, ticker, dir)
+plot_smoothed_iv(smoothed_data, ticker, dir)
+plot_smoothed_iv_filtered(smoothed_data_no_nans, ticker, dir)
+plot_svi_fit(smoothed_data_no_nans, iv_fun, ticker, dir)
+plot_repriced_prices(repriced_paritized, ticker, dir)
+plot_pdf_numerical(repriced_paritized, spot, iv_fun, rate, τ, ticker, dir)

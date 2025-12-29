@@ -115,18 +115,16 @@ end
 
 function fit_svi_smile(K::Vector{Float64}, iv::Vector{Float64}, F::Float64, T::Float64, k_extend::Float64=0.6)
 
-    # Clean data
+
     idx = findall(i -> isfinite(K[i]) && isfinite(iv[i]) && iv[i] > 0, eachindex(K))
     Kc = K[idx]
     ivc = iv[idx]
 
-    # log-moneyness + total variance
     k_data = log.(Kc ./ F)
     w_data = (ivc .^ 2) .* T
 
     fit = fit_svi(k_data, w_data)
 
-    # Butterfly check
     kmin = minimum(k_data) - k_extend
     kmax = maximum(k_data) + k_extend
     mg = min_g_on_grid(fit.a, fit.b, fit.ρ, fit.m, fit.σ, kmin, kmax)
@@ -135,7 +133,6 @@ function fit_svi_smile(K::Vector{Float64}, iv::Vector{Float64}, F::Float64, T::F
         error("SVI butterfly arbitrage detected: min g(k) = $mg")
     end
 
-    # Return callable IV function
     iv_fun = (Kq::Float64) -> begin
         k = log(Kq / F)
         sqrt(max(w(k, fit.a, fit.b, fit.ρ, fit.m, fit.σ), 0.0) / T)

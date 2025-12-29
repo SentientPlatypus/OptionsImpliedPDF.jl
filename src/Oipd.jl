@@ -3,6 +3,7 @@ module Oipd
     include(joinpath(@__DIR__, "functions.jl"))
     include(joinpath(@__DIR__, "bs.jl"))
     include(joinpath(@__DIR__, "svi.jl"))
+    include(joinpath(@__DIR__, "plotting.jl"))
 
     using Plots
     using Distributions
@@ -14,7 +15,7 @@ module Oipd
 
     #top level functions that people will have access to.
 
-    function prob_below(ticker::String, strike_price::Float64, expiry::String, savepath::String=nothing)
+    function prob_below(ticker::String, strike_price::Float64, expiry::String, savedir::String=nothing)
         """Returns the probability of the underlying asset being below the strike price at expiry. (sampled from risk-neutral pdf)"""
         spot = get_spot_price(ticker)
         call_df, put_df = get_option_prices(ticker, expiry)
@@ -43,32 +44,27 @@ module Oipd
             τ
         )
 
-        if savepath != nothing
-            strikes = range(minimum(paritized.strike), stop=maximum(paritized.strike), length=100)
-            pdf_values = [Breeden_Litzenberger(k, spot, iv_fun, rate, τ) for k in strikes]
 
-
-            plot(
-                strikes,
-                pdf_values,
-                xlabel = "Strike",
-                ylabel = "Density",
-                title = "$(ticker) $(expiry) risk-neutral pdf",
-                legend = true
-            )
-
-            line_at_spot = vline!([spot], line=:dash, label="Spot Price: $(spot)")
-
-            savefig(savepath)
+        #plotting logic
+        if savedir != nothing
+            dir = "$(savedir)/$(ticker)/$(expiry)"
+            make_dir_if_not_exists(dir)
+            plot_paritized_prices(paritized, ticker, dir)
+            plot_iv_smile(paritized_with_iv, ticker, dir)
+            plot_smoothed_iv(smoothed_data, ticker, dir)
+            plot_smoothed_iv_filtered(smoothed_data_no_nans, ticker, dir)
+            plot_svi_fit(smoothed_data_no_nans, iv_fun, ticker, dir)
+            plot_repriced_prices(repriced_paritized, ticker, dir)
+            plot_pdf_numerical(repriced_paritized, spot, iv_fun, rate, τ, ticker, dir)
         end
 
 
         return probability_below
     end
 
-    function prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savepath::String=nothing)
+    function prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::String=nothing)
         """Returns the probability of the underlying asset being at or above the strike price at expiry. (sampled from risk-neutral pdf)"""
-        return 1 - prob_below(ticker, strike_price, expiry, savepath)
+        return 1 - prob_below(ticker, strike_price, expiry, savedir)
     end
 
     export plot_pdf
