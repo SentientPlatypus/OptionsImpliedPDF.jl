@@ -44,7 +44,7 @@ expiry = get_closest_expiry("AMD")
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/SentientPlatypus/Oipd.jl")
+Pkg.add("OptionsImpliedPDF")
 ```
 
 ## Documentation
