@@ -45,7 +45,7 @@ prob_above = prob_at_or_above("AMD", 250.0, expiry)
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/SentientPlatypus/Oipd.jl")
+Pkg.add("OptionsImpliedPDF")
 ```
 
 ## Documentation
