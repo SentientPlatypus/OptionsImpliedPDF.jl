@@ -1,7 +1,7 @@
 module OptionsImpliedPDF
     include(joinpath(@__DIR__, "data.jl"))
     include(joinpath(@__DIR__, "functions.jl"))
-    include(joinpath(@__DIR__, "bs.jl"))
+    # include(joinpath(@__DIR__, "bs.jl"))
     include(joinpath(@__DIR__, "svi.jl"))
     include(joinpath(@__DIR__, "plotting.jl"))
 
@@ -14,8 +14,14 @@ module OptionsImpliedPDF
 
     #top level functions that people will have access to.
 
-    function prob_below(ticker::String, strike_price::Float64, expiry::String, savedir::String=nothing)
-        """Returns the probability of the underlying asset being below the strike price at expiry. (sampled from risk-neutral pdf)"""
+    """
+        prob_below(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
+
+    Returns the probability of the underlying asset being below the strike price at expiry. (sampled from risk-neutral pdf)
+    
+    setting savedir to a directory path will save all the plots generated in that directory under subfolders for ticker and expiry.
+    """
+    function prob_below(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
         spot = get_spot_price(ticker)
         call_df, put_df = get_option_prices(ticker, expiry)
         rate = 0.01
@@ -45,7 +51,7 @@ module OptionsImpliedPDF
 
 
         #plotting logic
-        if savedir != nothing
+        if savedir !== nothing
             dir = "$(savedir)/$(ticker)/$(expiry)"
             make_dir_if_not_exists(dir)
             plot_paritized_prices(paritized, ticker, dir)
@@ -61,8 +67,14 @@ module OptionsImpliedPDF
         return probability_below
     end
 
-    function prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::String=nothing)
-        """Returns the probability of the underlying asset being at or above the strike price at expiry. (sampled from risk-neutral pdf)"""
+        """
+        prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
+
+    Returns the probability of the underlying asset being at or above the strike price at expiry. (sampled from risk-neutral pdf)
+
+    setting savedir to a directory path will save all the plots generated in that directory under subfolders for ticker and expiry.
+    """
+    function prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
         return 1 - prob_below(ticker, strike_price, expiry, savedir)
     end
 

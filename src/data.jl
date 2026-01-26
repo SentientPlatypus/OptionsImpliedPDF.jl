@@ -47,8 +47,11 @@ function get_spot_price(ticker::String)
     return spot
 end
 
+"""
+    get_closest_expiry(ticker::String)
+Returns the closest expiry date string for the given ticker.
+"""
 function get_closest_expiry(ticker::String)
-    "Returns the closest expiry date for the given ticker"
     stock = yf.Ticker(ticker)
     @assert length(stock.options) > 0 "No options data is found for the given ticker: $(ticker). Check that the ticker is correct."
     closest_expiry = pyconvert(String, stock.options[1])

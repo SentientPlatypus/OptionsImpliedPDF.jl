@@ -30,14 +30,15 @@ Under the efficient market hypothesis, these option-implied probabilities repres
 ```julia
 using OptionsImpliedPDF
 
-# Calculate probability that AMD will be below $200 at expiration
-prob = prob_below("AMD", 200.0, "2025-01-17")
-
-# Calculate probability that AMD will be at or above $250
-prob_above = prob_at_or_above("AMD", 250.0, "2025-01-17")
-
 # Get closest available expiration date
 expiry = get_closest_expiry("AMD")
+
+# Calculate probability that AMD will be below $200 at expiration
+prob = prob_below("AMD", 200.0, expiry)
+
+# Calculate probability that AMD will be at or above $250
+prob_above = prob_at_or_above("AMD", 250.0, expiry)
+
 ```
 
 ## Installation
@@ -94,7 +95,7 @@ using OptionsImpliedPDF
 
 # Analyze AMD options expiring in January 2025
 ticker = "AMD"
-expiry = "2025-01-17"
+expiry = "2025-01-17" #this is an example expiry.
 strike = 220.0
 
 # Calculate probabilities

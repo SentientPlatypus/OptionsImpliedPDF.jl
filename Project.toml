@@ -1,7 +1,7 @@
 name = "OptionsImpliedPDF"
 uuid = "d5722cbd-5612-498c-a56c-8c01aca498af"
 authors = ["Gene Wicaksono"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
