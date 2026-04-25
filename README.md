@@ -122,7 +122,7 @@ prob_below(ticker, strike, expiry, "./plots")
 - **Plots.jl**: Visualization
 - **Optim.jl**: Numerical optimization
 - **Distributions.jl**: Statistical distributions
-- **PythonCall.jl**: Yahoo Finance data fetching via yfinance
+- **PythonCall.jl**: Yahoo Finance data fetching via yfinance (please let me know if there is an alternative)
 
 ## Applications
 
