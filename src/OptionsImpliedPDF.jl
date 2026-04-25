@@ -1,16 +1,19 @@
 module OptionsImpliedPDF
+    # On Linux, PythonCall/Conda prepends its `lib` to the loader path. If that happens before
+    # OpenSSL_jll (pulled in by Plots/GR/HTTP), an older conda libcrypto breaks libssl. Load
+    # the Julia stack first, then Python.
+    using Plots
+    using Distributions
+    using Dates
+    using DataFrames
+    using PythonCall
+
     include(joinpath(@__DIR__, "data.jl"))
     include(joinpath(@__DIR__, "functions.jl"))
     # include(joinpath(@__DIR__, "bs.jl"))
     include(joinpath(@__DIR__, "svi.jl"))
     include(joinpath(@__DIR__, "plotting.jl"))
 
-    using Plots
-    using Distributions
-    using Dates 
-    using DataFrames
-    using PythonCall
-    
 
     #top level functions that people will have access to.
 
@@ -67,12 +70,12 @@ module OptionsImpliedPDF
         return probability_below
     end
 
-        """
+    """
         prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
 
-    Returns the probability of the underlying asset being at or above the strike price at expiry. (sampled from risk-neutral pdf)
+    Returns the probability of the underlying asset being at or above the strike price at expiry (risk-neutral measure implied by listed options).
 
-    setting savedir to a directory path will save all the plots generated in that directory under subfolders for ticker and expiry.
+    If `savedir` is a directory path, saves diagnostic plots under subfolders for `ticker` and `expiry` (same behavior as `prob_below`).
     """
     function prob_at_or_above(ticker::String, strike_price::Float64, expiry::String, savedir::Union{String, Nothing}=nothing)
         return 1 - prob_below(ticker, strike_price, expiry, savedir)

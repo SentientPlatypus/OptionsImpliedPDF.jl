@@ -1,4 +1,4 @@
-using PythonCall
+# PythonCall is loaded in OptionsImpliedPDF.jl before this file (load order matters for OpenSSL on Linux).
 using DataFrames
 
 yf = pyimport("yfinance")

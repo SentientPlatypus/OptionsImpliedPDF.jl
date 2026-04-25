@@ -1,4 +1,4 @@
-# Handwritten Notes
+# [Notes & PDFs](@id notes-pdfs)
 
 This page contains links to handwritten notes and additional documentation.
 

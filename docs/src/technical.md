@@ -1,4 +1,4 @@
-# Technical Documentation
+# [Technical background](@id technical-background)
 
 ## Overview
 
@@ -48,3 +48,74 @@ For more details, my handwritten notes can be seen in the `/notes` folder.
 ### Black-Scholes Model
 
 The package implements the classic Black-Scholes model for European options:
+
+$$
+\begin{aligned}
+C(S, K, T, r, \sigma, q) &= S e^{-qT} N(d_1) - K e^{-rT} N(d_2) \\
+P(S, K, T, r, \sigma, q) &= K e^{-rT} N(-d_2) - S e^{-qT} N(-d_1)
+\end{aligned}
+$$
+
+Where:
+
+- $d_1 = \frac{\ln(S/K) + (r - q + \sigma^2/2)T}{\sigma\sqrt{T}}$
+- $d_2 = d_1 - \sigma\sqrt{T}$
+- $N(\cdot)$ is the cumulative normal distribution
+
+Implied volatility is calculated using Newton–Raphson iteration with analytical derivatives.
+
+### SVI (Stochastic Volatility Inspired) Model
+
+The SVI model parameterizes total variance in log-moneyness:
+
+$$w(k) = a + b \left( \rho (k - m) + \sqrt{(k - m)^2 + \sigma^2} \right)$$
+
+Where:
+
+- $k = \ln(K/F)$ is log-moneyness
+- $F = S e^{rT}$ is the forward price
+- $a, b, \rho, m, \sigma$ are SVI parameters
+
+#### Parameter constraints
+
+- $b > 0$
+- $|\rho| \leq 1$
+- $\sigma > 0$
+- $a + b\sigma\sqrt{1-\rho^2} \geq 0$ (Gatheral–Jacquier no-calendar-arbitrage type condition)
+
+#### Reparameterization
+
+For optimization stability, parameters are reparameterized (positivity and bounded $\rho$ via $\tanh$, etc.).
+
+### Why not spline fitting?
+
+Spline interpolation of the smile can violate no-arbitrage, extrapolate poorly, and amplify noise in second derivatives used in Breeden–Litzenberger. The figures below contrast a spline-based experiment with SVI on sample data from this repository.
+
+![Spline-fitted IV](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/plots/0_example_bad_fit/AMD_5_iv_spline.png)
+
+![SVI-fitted IV](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/5_iv_svi.png)
+
+![Spline-based prices](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/plots/0_example_bad_fit/AMD_7_price_spline.png)
+
+![SVI-based prices](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/6_price_vs_strike_repriced.png)
+
+![Spline-derived PDF](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/plots/0_example_bad_fit/AMD_8_pdf.png)
+
+![SVI-derived PDF](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/7_pdf_numerical.png)
+
+### Risk-neutral density (Breeden–Litzenberger)
+
+$$q(K) = e^{rT} \frac{\partial^2 C}{\partial K^2}$$
+
+Implementation sketch: fit SVI, build a dense strike grid, price calls off the smile, approximate the second derivative in $K$, integrate for tail probabilities.
+
+## Data pipeline
+
+- **Quotes**: Mid from bid/ask when healthy; otherwise fallback to last trade (with warnings).
+- **Parity / OTM**: Synthetic calls from OTM puts where appropriate.
+- **Smoothing**: Gaussian kernel on IV before SVI.
+- **Fitting**: Weighted fit in total variance with constrained optimization and butterfly diagnostic on an extended $k$ grid.
+
+## Dependencies (Julia)
+
+Julia ≥ 1.10 with **DataFrames**, **Optim**, **Plots**, **Distributions**, **PythonCall** (and **CondaPkg** transitively for `yfinance`). See `Project.toml` for exact compat bounds.

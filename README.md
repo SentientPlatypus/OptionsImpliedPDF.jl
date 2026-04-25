@@ -25,6 +25,12 @@ Under the efficient market hypothesis, these option-implied probabilities repres
 - **Visualization**: Built-in plotting functions for analysis and debugging
 - **Arbitrage Detection**: Automatic checking for model consistency and arbitrage opportunities
 
+## Environment notes (WSL / Linux)
+
+If precompilation fails with **OpenSSL** or **libpng** / **artifact not found**, a common cause is **`~/.julia/config/startup.jl`** loading **PythonCall** before binary artifacts install. Use **`julia --startup-file=no --project=@.`** for this repo, or run **`julia --startup-file=no scripts/repair_environment.jl`** once to refresh the depot. Wrapper: **`bash scripts/run_0_example.sh`**.
+
+To run the example with the default `julia` command but no startup file: **`JULIA_STARTUP_FILE=/dev/null julia --project=@. src/0_example.jl`** (Linux / WSL).
+
 ## Quick Start
 
 ```julia
@@ -50,6 +56,7 @@ Pkg.add("OptionsImpliedPDF")
 
 ## Documentation
 
+- **Hosted manual (Documenter.jl):** [stable](https://sentientplatypus.github.io/OptionsImpliedPDF.jl/stable/) · [dev](https://sentientplatypus.github.io/OptionsImpliedPDF.jl/dev/) (after GitHub Pages and `DOCUMENTER_KEY` are configured)
 - **[Technical Documentation](TECHNICAL_README.md)**: Detailed mathematical background, algorithms, and API reference
 - **[Examples](examples/)**: Practical usage examples and scripts
 - **[Hand Written Notes](notes/Implied%20Probability.pdf)**: Handwritten notes I took while working on this project

@@ -1,89 +1,53 @@
-# OptionsImpliedPDF.jl Documentation
+# OptionsImpliedPDF.jl
 
 ```@meta
 CurrentModule = OptionsImpliedPDF
 ```
 
-# Overview
+## Overview
 
-OptionsImpliedPDF.jl is a Julia package that extracts risk-neutral probability distributions from options market data, revealing the market's collective expectations about future asset price movements.
+OptionsImpliedPDF.jl extracts **risk-neutral** probability information from options market data, summarizing what listed prices imply about the distribution of the underlying at expiry.
 
-Under the efficient market hypothesis, these option-implied probabilities represent the most informed estimates available of potential price outcomes, derived from the wisdom of market participants.
+This package was inspired by the Python project [OIPD](https://github.com/tyrneh/options-implied-probability/blob/main/README.md).
 
-This package was inspired by the existing Python library [OIPD](https://github.com/tyrneh/options-implied-probability/blob/main/README.md).
-
-![Risk-Neutral Probability Density Function](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/7_pdf_numerical.png)
-
-*Example output: Risk-neutral probability density function extracted from AAPL options data*
+![Risk-neutral PDF from AAPL options](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/7_pdf_numerical.png)
 
 ## Features
 
-- **Real-time Options Data**: Fetches live options chains from Yahoo Finance
-- **Black-Scholes Pricing**: Complete implementation with implied volatility calculation
-- **SVI Model**: Stochastic Volatility Inspired model for volatility smile fitting
-- **Risk-Neutral Probabilities**: Calculates probabilities of price movements using risk-neutral density
-- **Breeden-Litzenberger**: Numerical density estimation from option prices
-- **Visualization**: Built-in plotting functions for analysis and debugging
-- **Arbitrage Detection**: Automatic checking for model consistency and arbitrage opportunities
+- Live options chains via Yahoo Finance ([PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl))
+- Put–call parity and OTM processing, IV smoothing, **SVI** smile fit with no-butterfly checks
+- **Breeden–Litzenberger**-style numerical density and tail probabilities
+- Optional on-disk **Plots.jl** diagnostics when you pass `savedir`
 
-## Installation
+## Where to read next
 
-To install OptionsImpliedPDF.jl, use the Julia package manager:
+| Topic | Page |
+|--------|------|
+| Install & Python stack | [Installation](@ref installation-page) |
+| How to call the API | [User guide](@ref user-guide) |
+| `prob_below`, `prob_at_or_above`, `get_closest_expiry` | [API reference](@ref api-reference) |
+| Pipeline & math | [Technical background](@ref technical-background) |
+| PDF notes | [Notes & PDFs](@ref notes-pdfs) |
+
+## Quick start (copy-paste)
 
 ```julia
 using Pkg
 Pkg.add("OptionsImpliedPDF")
 ```
 
-## Quick Start
+```julia
+using OptionsImpliedPDF
 
-```@example
-using ..OptionsImpliedPDF
-
-# Get closest available expiration date
-closest_expiry = get_closest_expiry("AMD")
-
-# Calculate probability that AMD will be below $200 at expiration
-
-prob = prob_below("AMD", 200.0, closest_expiry)
-
-# Calculate probability that AMD will be at or above $250
-prob_above = prob_at_or_above("AMD", 250.0, closest_expiry)
-
-println("Probability AMD is below $(200.0) on $(closest_expiry) is $(prob). The probability it is at or above that is $(prob_above)")
+expiry = get_closest_expiry("AMD")
+prob_below("AMD", 200.0, expiry)
+prob_at_or_above("AMD", 250.0, expiry)
 ```
 
-## Usage
+These calls hit the network (Yahoo). For offline doc builds we keep examples as static code here; run the same lines in your own Julia session.
 
-The package provides high-level functions to compute probabilities from options data:
+## Contributing and license
 
-- `prob_below(ticker, strike_price, expiry, savedir=nothing)`: Returns the probability of the underlying asset being below the strike price at expiry.
-- `prob_at_or_above(ticker, strike_price, expiry, savedir=nothing)`: Returns the probability of the underlying asset being at or above the strike price at expiry.
-- `get_closest_expiry(ticker)`: Returns the closest available expiration date for the given ticker.
+Contributions are welcome via issues and pull requests.
 
-When `savedir` is provided, the functions save various plots (parity checks, IV smiles, SVI fits, PDFs) to subdirectories organized by ticker and expiry.
-
-## API Reference
-
-```@autodocs
-Modules = [OptionsImpliedPDF]
-```
-
-## Examples
-
-For detailed examples, see the `examples/` directory in the repository, which includes:
-
-- Plot generation for various tickers and expiries
-- Comparison of fitted models
-- Visualization of implied PDFs
-
-## Contributing
-
-Contributions are welcome! Please see the repository's issue tracker and pull request guidelines.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/SentientPlatypus/OptionsImpliedPDF.jl/blob/main/LICENSE) file for details.
-
-```@contents
-```
+Licensed under the MIT License: [LICENSE](https://github.com/SentientPlatypus/OptionsImpliedPDF.jl/blob/main/LICENSE).

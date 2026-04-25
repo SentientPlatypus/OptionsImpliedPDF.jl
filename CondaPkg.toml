@@ -1,3 +1,5 @@
 [deps]
 python = "==3.11"
-yfinance = "==0.2.24" 
+yfinance = "==0.2.24"
+# OpenSSL 3.3+ symbols required by Julia's OpenSSL_jll (e.g. via Plots/HTTP). Older conda libcrypto breaks if it wins on LD_LIBRARY_PATH.
+openssl = ">=3.3,<4"
