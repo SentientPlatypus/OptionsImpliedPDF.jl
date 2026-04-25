@@ -22,7 +22,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: "1.10"
+          # Must match docs/Manifest.toml (julia_version / stdlibs like StyledStrings).
+          version: "1.11"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
         with:
