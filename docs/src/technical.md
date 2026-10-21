@@ -12,7 +12,7 @@ The process of generating the PDFs and CDFs is as follows:
 
 2. **Put-Call Parity Preprocessing**: Apply put-call parity to create synthetic call prices from out-of-the-money put prices, reducing noise from illiquid in-the-money quotes.
 
-3. **OTM Filtering**: Restrict to out-of-the-money options only, keeping calls with strike prices above the current spot price and using synthetic calls constructed from OTM puts via parity.
+3. **OTM Filtering**: Restrict to out-of-the-money options only, using yfinance's `inTheMoney` flag (`inTheMoney == false`). OTM call prices are mids; OTM puts become synthetic calls via put-call parity \(C = P + S - K e^{-r\tau}\). There is no dividend yield \(q\).
 
    ![Paritized Options Data](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/1_paritized_plot.png)
 
@@ -20,12 +20,12 @@ The process of generating the PDFs and CDFs is as follows:
 
    ![Implied Volatility Smile](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/2_iv_smile.png)
 
-5. **Gaussian Smoothing**: Apply Gaussian kernel smoothing to the implied volatilities to reduce noise and outliers before surface fitting.
+5. **Gaussian Smoothing**: Apply a Gaussian kernel of size 5 over the **row index** (not strike distance): window \(i \pm 5\), weights \(w = \exp(-(i-j)^2 / (2 \cdot 5^2))\). NaNs are not skipped, so a NaN poisons its neighbours; non-finite rows are then dropped. The risk-free rate used throughout is hard-coded to \(r = 0.01\).
 
    ![Smoothed IV Smile](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/3_iv_smile_smoothed.png)
    ![Filtered Smoothed IV Smile](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/4_iv_smile_smoothed_filtered.png)
 
-6. **Volatility Surface Fitting**: Fit the smoothed implied-volatility smile using the SVI (Stochastic Volatility Inspired) model. During optimization, constrain the raw parameters ($b \geq 0$, $|\rho| \leq \rho_{\text{bound}} < 1$, $\sigma \geq \sigma_{\text{min}}$) and enforce the Gatheral-Jacquier minimum-variance condition $a + b\sigma\sqrt{1-\rho^2} \geq 0$. After calibration, evaluate the butterfly diagnostic $g(k)$ on an extended log-moneyness grid; if $\min g < 0$ a CalculationError is raised.
+6. **Single-Expiry Smile Fitting**: Fit the smoothed implied-volatility smile with SVI (one expiry; not a volatility surface). During optimization, constrain the raw parameters ($b \geq 0$, $|\rho| \leq \rho_{\text{bound}} < 1$, $\sigma \geq \sigma_{\text{min}}$) and penalize violations of the Gatheral-Jacquier minimum-variance condition $a + b\sigma\sqrt{1-\rho^2} \geq 0$. After calibration, evaluate the butterfly diagnostic $g(k)$ on a log-moneyness grid extended by `k_extend` (default \(0.6\)); if $\min g < 0$ a plain `error()` is raised. There is no calendar-arbitrage check across expiries.
 
    ![SVI Fitted IV Smile](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/5_iv_svi.png)
 
@@ -37,7 +37,7 @@ The process of generating the PDFs and CDFs is as follows:
 
    ![Risk-Neutral PDF](https://raw.githubusercontent.com/SentientPlatypus/OptionsImpliedPDF.jl/main/examples/example_plots/AAPL/2026-01-09/7_pdf_numerical.png)
 
-9. **CDF Calculation**: Once we have the PDF, calculate the cumulative distribution function through numerical integration.
+9. **CDF Calculation**: `p_below` is a 10,000-step trapezoid sum of the Breeden–Litzenberger density from \(K = 1\) to the requested strike. The density is not normalized or checked to integrate to 1. `prob_at_or_above = 1 - prob_below`.
 
 ## Mathematical Framework
 
@@ -47,26 +47,27 @@ For more details, my handwritten notes can be seen in the `/notes` folder.
 
 ### Black-Scholes Model
 
-The package implements the classic Black-Scholes model for European options:
+The package implements the Black-Scholes model for European options with **no dividend yield** \(q\):
 
 $$
 \begin{aligned}
-C(S, K, T, r, \sigma, q) &= S e^{-qT} N(d_1) - K e^{-rT} N(d_2) \\
-P(S, K, T, r, \sigma, q) &= K e^{-rT} N(-d_2) - S e^{-qT} N(-d_1)
+C(S, K, T, r, \sigma) &= S N(d_1) - K e^{-rT} N(d_2) \\
+P(S, K, T, r, \sigma) &= K e^{-rT} N(-d_2) - S N(-d_1)
 \end{aligned}
 $$
 
 Where:
 
-- $d_1 = \frac{\ln(S/K) + (r - q + \sigma^2/2)T}{\sigma\sqrt{T}}$
+- $d_1 = \frac{\ln(S/K) + (r + \sigma^2/2)T}{\sigma\sqrt{T}}$
 - $d_2 = d_1 - \sigma\sqrt{T}$
 - $N(\cdot)$ is the cumulative normal distribution
+- In `prob_below`, \(r\) is fixed at \(0.01\) and current time \(t = 0\)
 
 Implied volatility is calculated using Newton–Raphson iteration with analytical derivatives.
 
 ### SVI (Stochastic Volatility Inspired) Model
 
-The SVI model parameterizes total variance in log-moneyness:
+The SVI model parameterizes **total variance of a single-expiry smile** in log-moneyness:
 
 $$w(k) = a + b \left( \rho (k - m) + \sqrt{(k - m)^2 + \sigma^2} \right)$$
 
@@ -81,7 +82,7 @@ Where:
 - $b > 0$
 - $|\rho| \leq 1$
 - $\sigma > 0$
-- $a + b\sigma\sqrt{1-\rho^2} \geq 0$ (Gatheral–Jacquier no-calendar-arbitrage type condition)
+- $a + b\sigma\sqrt{1-\rho^2} \geq 0$ (Gatheral–Jacquier minimum-variance condition; there is no calendar-arbitrage check across expiries)
 
 #### Reparameterization
 
@@ -107,14 +108,15 @@ Spline interpolation of the smile can violate no-arbitrage, extrapolate poorly, 
 
 $$q(K) = e^{rT} \frac{\partial^2 C}{\partial K^2}$$
 
-Implementation sketch: fit SVI, build a dense strike grid, price calls off the smile, approximate the second derivative in $K$, integrate for tail probabilities.
+Implementation: fit SVI on the single-expiry smile, price calls off that smile at each quadrature node, approximate \(\partial^2 C/\partial K^2\) with a central second difference (\(h = 0.001\)), then integrate with a 10,000-step trapezoid from \(K = 1\). The density is not normalized or checked to integrate to 1; there is no precomputed dense grid, vectorization, or cache.
 
 ## Data pipeline
 
 - **Quotes**: Mid from bid/ask when healthy; otherwise fallback to last trade (with warnings).
-- **Parity / OTM**: Synthetic calls from OTM puts where appropriate.
-- **Smoothing**: Gaussian kernel on IV before SVI.
-- **Fitting**: Weighted fit in total variance with constrained optimization and butterfly diagnostic on an extended $k$ grid.
+- **Parity / OTM**: Keep rows with yfinance `inTheMoney == false`; OTM puts become synthetic calls \(C = P + S - K e^{-r\tau}\).
+- **Smoothing**: Gaussian kernel of size 5 over the row index (NaNs propagate); then drop non-finite IV rows.
+- **Rate**: \(r = 0.01\) hard-coded; no dividend yield \(q\).
+- **Fitting**: Unweighted SSE in total variance (`weights = ones`) with constrained optimization and butterfly \(g(k)\) on a \(k\) grid extended by `k_extend` (default \(0.6\)). Failures raise `error()`, not `CalculationError`. No calendar-arbitrage check.
 
 ## Dependencies (Julia)
 

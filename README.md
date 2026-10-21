@@ -23,7 +23,7 @@ Under the efficient market hypothesis, these option-implied probabilities repres
 - **Risk-Neutral Probabilities**: Calculates probabilities of price movements using risk-neutral density
 - **Breeden-Litzenberger**: Numerical density estimation from option prices
 - **Visualization**: Built-in plotting functions for analysis and debugging
-- **Arbitrage Detection**: Automatic checking for model consistency and arbitrage opportunities
+- **Arbitrage Detection**: SVI butterfly \(g(k)\) check and Gatheral–Jacquier penalty on a single-expiry smile (no calendar-arbitrage check)
 
 ## Environment notes (WSL / Linux)
 
@@ -68,15 +68,18 @@ Pkg.add("OptionsImpliedPDF")
 - Fetch real-time call and put options data
 - Automatic data cleaning and quote health checking
 - Support for any ticker with options available on Yahoo Finance
+- OTM selection uses yfinance's `inTheMoney` flag (not a strike-versus-spot cutoff)
 
 ### Pricing Models
-- **Black-Scholes**: European option pricing with Newton-Raphson implied volatility
-- **SVI**: Parametric volatility smile modeling
+- **Black-Scholes**: European option pricing with Newton-Raphson implied volatility. There is no dividend yield \(q\); the risk-free rate \(r\) is fixed at \(0.01\).
+- **SVI**: Parametric **single-expiry** smile (not a volatility surface). Failures raise Julia `error()`, not a custom `CalculationError`.
+- **Smoothing**: Gaussian kernel of size 5 over the option-row index (not strike distance)
 
 ### Probability Analysis
 - Calculate risk-neutral probabilities for price movements
 - Support for custom strike prices and expiration dates
-- Automatic volatility surface construction
+- Single-expiry SVI smile fit (not a volatility surface)
+- `p_below` is a 10,000-step trapezoid of the Breeden–Litzenberger density from \(K=1\); the density is not normalized or checked to integrate to 1. There is no dense precomputed grid, vectorization, or caching.
 
 ### Visualization
 - Volatility smile plots
@@ -90,7 +93,7 @@ Pkg.add("OptionsImpliedPDF")
 ![Implied Volatility Smile](examples/example_plots/AAPL/2026-01-09/2_iv_smile.png)
 
 **SVI Model Fit**
-![SVI Fitted Volatility Surface](examples/example_plots/AAPL/2026-01-09/5_iv_svi.png)
+![SVI Fitted Volatility Smile](examples/example_plots/AAPL/2026-01-09/5_iv_svi.png)
 
 **Risk-Neutral Probability Density**
 ![Risk-Neutral Probability Density Function](examples/example_plots/AAPL/2026-01-09/7_pdf_numerical.png)
@@ -145,7 +148,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use OptionsImpliedPDF.jl in your research, please cite:
 
 ```bibtex
-@software{wicksono2025oipd,
+@software{wicaksono2025oipd,
   author = {Gene Wicaksono},
   title = {OptionsImpliedPDF.jl: Options Pricing and Risk Analysis in Julia},
   url = {https://github.com/SentientPlatypus/OptionsImpliedPDF.jl},
