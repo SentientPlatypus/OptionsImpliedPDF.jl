@@ -33,8 +33,7 @@ smoothed_data_no_nans = remove_nans(smoothed_data)
 fit, iv_fun = fit_svi_smile(
     Float64.(smoothed_data_no_nans.strike),
     Float64.(smoothed_data_no_nans.iv),
-    F,τ
-    , 1e-4)
+    F,τ)
 
 @show fit
 
